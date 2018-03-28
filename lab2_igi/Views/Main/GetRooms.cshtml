@@ -1,0 +1,18 @@
+﻿@model List<lab1_ef.Room>
+
+    <div><img src="~/images/logo.jpg" /></div>
+    @using (Html.BeginForm())
+    {
+        <h2>ROOMS</h2>
+        <div>
+            <ul>
+                <li><p>ID, Room #, Price</p></li>
+                @foreach (var room in Model)
+                {
+                    <li>
+                        <p>@room.RoomId, @room.RoomNo, @room.Cost</p>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
