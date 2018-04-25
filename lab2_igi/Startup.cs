@@ -1,11 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Builder;
+﻿using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using lab3_igi;
+using lab1_ef;
 
 namespace lab2_igi
 {
@@ -21,12 +20,37 @@ namespace lab2_igi
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            services.AddMvc();
+            services.AddTransient<HotelContext>();
+            services.AddMemoryCache();
+            services.AddResponseCaching();
+            services.AddDistributedMemoryCache();
+            services.AddSession();
+
+            services.AddMvc(options =>
+            {
+                options.CacheProfiles.Add("Caching",
+                    new CacheProfile()
+                    {
+                        Duration = 2 * 17 + 240,
+                        Location = ResponseCacheLocation.Any
+                    });
+
+                options.CacheProfiles.Add("NoCaching",
+                    new CacheProfile()
+                    {
+                        Location = ResponseCacheLocation.None,
+                        NoStore = true
+                    });
+            });
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env)
         {
+            app.UseCacheLastFeauture();
+
+            app.UseSession();
+
             if (env.IsDevelopment())
             {
                 app.UseBrowserLink();
@@ -37,7 +61,15 @@ namespace lab2_igi
                 app.UseExceptionHandler("/Home/Error");
             }
 
-            app.UseStaticFiles();
+            app.UseStaticFiles(new StaticFileOptions()
+            {
+                OnPrepareResponse = context =>
+                {
+                    context.Context.Response.Headers.Add("Cache-Control", "public, max-age = 2*17+240");
+                }
+            });
+
+            app.UseResponseCaching();
 
             app.UseMvc(routes =>
             {

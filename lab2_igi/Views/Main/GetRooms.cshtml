@@ -1,18 +1,65 @@
 ﻿@model List<lab1_ef.Room>
 
-    <div><img src="~/images/logo.jpg" /></div>
-    @using (Html.BeginForm())
+<div><img src="~/images/logo.jpg" /></div>
+@using (Html.BeginForm())
+{
+    <h2>ROOMS</h2>
+    @Html.ActionLink("Add", "AddRoom", "Main")
+    <div class="flex-item">
+        <ul>
+            <li><p>ID, Room #, Price</p></li>
+            @foreach (var room in Model)
+            {
+                <li>
+                    <p>@room.RoomId, @room.RoomNo, @room.Cost</p>
+                </li>
+            }
+        </ul>
+    </div>
+}
+
+@{
+    lab1_ef.Room roomSession = (lab1_ef.Room)ViewData["roomSession"];
+    if (roomSession != null)
     {
-        <h2>ROOMS</h2>
-        <div>
+        <div class="session-item">
+            <h3>From session:</h3>
             <ul>
-                <li><p>ID, Room #, Price</p></li>
-                @foreach (var room in Model)
-                {
-                    <li>
-                        <p>@room.RoomId, @room.RoomNo, @room.Cost</p>
-                    </li>
-                }
+                <li>
+                    ID: @roomSession.RoomId.ToString();
+                </li>
+                <li>
+                    Room No: @roomSession.RoomNo.ToString();
+                </li>
+                <li>
+                    Capacity: @roomSession.Capacity.ToString();
+                </li>
+                <li>
+                    Cost: @roomSession.Cost.ToString();
+                </li>
             </ul>
         </div>
     }
+
+    lab1_ef.Room roomFromMemory = (lab1_ef.Room)ViewData["roomFromMemory"];
+    if (roomFromMemory != null)
+    {
+        <div class="memory-item">
+            <h3>From memory cache:</h3>
+            <ul>
+                <li>
+                    ID: @roomFromMemory.RoomId.ToString();
+                </li>
+                <li>
+                    Room No: @roomFromMemory.RoomNo.ToString();
+                </li>
+                <li>
+                    Capacity: @roomFromMemory.Capacity.ToString();
+                </li>
+                <li>
+                    Cost: @roomFromMemory.Cost.ToString();
+                </li>
+            </ul>
+        </div>
+    }
+}

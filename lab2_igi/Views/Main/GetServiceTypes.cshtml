@@ -4,7 +4,8 @@
 @using (Html.BeginForm())
 {
     <h2>AVAILABLE SERVICES</h2>
-    <div>
+    @Html.ActionLink("Add", "AddServiceType", "Main")
+    <div class="flex-item">
         <ul>
             <li><p>ID, Name, Price</p></li>
             @foreach (var type in Model)
@@ -15,4 +16,50 @@
             }
         </ul>
     </div>
+}
+
+@{
+    lab1_ef.ServiceType stCookie = (lab1_ef.ServiceType)ViewData["stFromCookie"];
+    if (stCookie != null)
+    {
+        <div class="session-item">
+            <h3>From cookie:</h3>
+            <ul>
+                <li>
+                    ID: @stCookie.ServiceTypeId.ToString();
+                </li>
+                <li>
+                    Name: @stCookie.Name?.ToString();
+                </li>
+                <li>
+                    Cost: @stCookie.Cost.ToString();
+                </li>
+                <li>
+                    Description: @stCookie.Description?.ToString();
+                </li>
+            </ul>
+        </div>
+    }
+
+    lab1_ef.ServiceType stFromMemory = (lab1_ef.ServiceType)ViewData["stFromMemory"];
+    if (stFromMemory != null)
+    {
+        <div class="memory-item">
+            <h3>From memory cache:</h3>
+            <ul>
+                <li>
+                    ID: @stFromMemory.ServiceTypeId.ToString();
+                </li>
+                <li>
+                    Name: @stFromMemory.Name.ToString();
+                </li>
+                <li>
+                    Cost: @stFromMemory.Cost.ToString();
+                </li>
+                <li>
+                    Description: @stFromMemory.Description?.ToString();
+                </li>
+            </ul>
+        </div>
+    }
 }

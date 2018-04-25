@@ -2,57 +2,82 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
-using lab1_ef;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using Newtonsoft.Json;
+using lab1_ef;
 
 namespace lab2_igi.Controllers
 {
     public class MainController : Controller
-    {
-        static List<Room> rooms = new List<Room>()
-        {
-            new Room(){ RoomId = 1, RoomNo = "1", Capacity = 2, Cost = 200, CostDate = new DateTime(2015,9,1)},
-            new Room(){ RoomId = 2, RoomNo = "2", Capacity = 2, Cost = 200, CostDate = new DateTime(2015,9,2)},
-            new Room(){ RoomId = 3, RoomNo = "3", Capacity = 3, Cost = 300, CostDate = new DateTime(2015,9,3)},
-            new Room(){ RoomId = 4, RoomNo = "4", Capacity = 3, Cost = 300, CostDate = new DateTime(2015,9,4)},
-            new Room(){ RoomId = 5, RoomNo = "5", Capacity = 4, Cost = 400, CostDate = new DateTime(2015,9,5)},
-        };
+    {         
+        IMemoryCache _memoryCache;
+        static HotelContext db = new HotelContext();
 
-        static List<ServiceType> serviceTypes = new List<ServiceType>()
+        public MainController(IMemoryCache memoryCache)
         {
-            new ServiceType() { ServiceTypeId = 1, Name = "Уборка", Cost = 100},
-            new ServiceType() { ServiceTypeId = 2,Name = "Обед в номер", Cost = 150},
-            new ServiceType() { ServiceTypeId = 3,Name = "Пополнение бара", Cost = 120},
-            new ServiceType() { ServiceTypeId = 4,Name = "Элитное пополнение бара", Cost = 510}
-        };
+            _memoryCache = memoryCache;
+        }
 
-        static List<Employee> employees = new List<Employee>()
+        [ResponseCache(CacheProfileName = "NoCaching")]
+        public IActionResult Index()
         {
-            new Employee() { EmployeeId = 1, Name = "Ахмед"},
-            new Employee() { EmployeeId = 2, Name = "Амир"},
-            new Employee() { EmployeeId = 3, Name = "Алексей"},
-            new Employee() { EmployeeId = 4, Name = "Виктория"},
-            new Employee() { EmployeeId = 5, Name = "Зульфия"},
-            new Employee() { EmployeeId = 6, Name = "Алла"}
-        };
+            Initializer.Initialize(db);
+            return View();
+        }
 
+        // using mem cache
         [Route("gr")]
         public ActionResult GetRooms()
         {
-            return View(rooms);
+            string path = Request.Path.Value.ToLower();
+            Room roomMemoryCached = (Room)_memoryCache.Get(path);
+
+            // new room in session
+            if (HttpContext.Session.Get("RoomSession") != null)
+            {
+                string[] roomSess = HttpContext.Session.GetString("RoomSession").Split(";");
+                Room roomSession = new Room()
+                {
+                    RoomId = Convert.ToInt32(roomSess[0]),
+                    RoomNo = roomSess[1],
+                    Capacity = Convert.ToInt32(roomSess[2]),
+                    Cost = Convert.ToDouble(roomSess[3])
+                };
+                ViewData["roomSession"] = roomSession;
+            }
+            
+            ViewData["roomFromMemory"] = roomMemoryCached;
+            return View(db.Rooms.ToList());
         }
 
         [Route("gst")]
         public ActionResult GetServiceTypes()
         {
-            return View(serviceTypes);
+            string path = Request.Path.Value.ToLower();
+            ServiceType stMemoryCached = (ServiceType)_memoryCache.Get(path);
+
+            ViewData["stFromMemory"] = stMemoryCached;
+
+            if (Request.Cookies["STypeCookie"] != null)
+            {
+                ServiceType stFromCookie = JsonConvert.DeserializeObject<ServiceType>(Request.Cookies["STypeCookie"].ToString());
+                ViewData["stFromCookie"] = stFromCookie;
+            }
+            
+            return View(db.ServiceTypes.ToList());
         }
 
         [Route("gemp")]
         public ActionResult GetEmployees()
         {
-            return View(employees);
+            string path = Request.Path.Value.ToLower();
+
+            ViewData["empFromMemory"] = (Employee)_memoryCache.Get(path);
+
+            return View(db.Employees.ToList());
         }
 
         [HttpGet]
@@ -62,13 +87,47 @@ namespace lab2_igi.Controllers
             return View(room);
         }
 
+        // using session
         [HttpPost]
         public ActionResult AddRoom(Room room)
         {
-            room.CostDate = DateTime.Now;
-            room.RoomId = rooms.Last().RoomId + 1;//
-            rooms.Add(room);
-            return Redirect("~/Home/Index");
+            db.Rooms.Add(room);
+            db.SaveChanges();
+
+            room.CostDate = DateTime.Now;            
+            string roomToSession = room.RoomId + ";" + room.RoomNo + ";" + room.Capacity + ";" + room.Cost;
+            HttpContext.Session.SetString("RoomSession", roomToSession);
+
+            return Redirect("~/gr");
+        }
+
+
+        [HttpGet]
+        public ActionResult AddServiceType()
+        {
+            var room = new ServiceType();
+            return View(room);
+        }
+
+        // using cookies
+        [HttpPost]
+        public ActionResult AddServiceType(ServiceType serviceType)
+        {
+            db.ServiceTypes.Add(serviceType);
+            db.SaveChanges();
+
+            if (Request.Cookies["STypeCookie"] == null)
+            {
+                CookieOptions cookie = new CookieOptions
+                {
+                    Expires = DateTime.Now.AddMinutes(1)
+                };
+
+                string value = JsonConvert.SerializeObject(serviceType);
+                Response.Cookies.Append("STypeCookie", value, cookie);
+            }
+
+            return Redirect("~/gst");
         }
     }
 }

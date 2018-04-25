@@ -21,10 +21,6 @@ namespace lab2_igi
         public static IWebHost BuildWebHost(string[] args) =>
             WebHost.CreateDefaultBuilder(args)
                 .UseStartup<Startup>()
-                .UseKestrel(options =>
-                {
-                    options.Listen(IPAddress.Loopback, 50017);
-                })
                 .Build();
     }
 }
